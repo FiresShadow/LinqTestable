@@ -2,52 +2,55 @@
 
 namespace LinqTestableTest
 {
-    public class CAR
+    class CAR
     {
         public int CAR_ID { get; set; } 
     }
 
-    public class DOOR
+    class DOOR
     {
         public int DOOR_ID { get; set; }
         public int CAR_ID { get; set; }
     }
 
-    public class DOOR_HANDLE
+    class DOOR_HANDLE
     {
         public int DOOR_HANDLE_ID { get; set; }
         public int DOOR_ID { get; set; }
+        public string COLOR { get; set; }
+        public int? MATERIAL_ID { get; set; }
+        public int? MANUFACTURER_ID { get; set; }
     }
 
-    public interface IDataModel
+    interface IDataModel
     {
-        IObjectSet<CAR> CAR { get; set; }
-        IObjectSet<DOOR> DOOR { get; set; }
-        IObjectSet<DOOR_HANDLE> DOOR_HANDLE { get; set; }
+        IObjectSet<CAR> CAR { get; }
+        IObjectSet<DOOR> DOOR { get; }
+        IObjectSet<DOOR_HANDLE> DOOR_HANDLE { get; }
     }
 
-    public class TestDataModel : IDataModel
+    class TestDataModel : IDataModel
     {
-        public IObjectSet<CAR> CAR
+        public IObjectSet<CAR> CAR { get; set; }
+        public IObjectSet<DOOR> DOOR { get; set; }
+        public IObjectSet<DOOR_HANDLE> DOOR_HANDLE { get; set; }
+
+        public TestDataModel()
         {
-            get { return _car; }
-            set { _car = value; }
+            Settings = new TestDataModelSettings();
+            CAR = new MockObjectSet<CAR>(Settings);
+            DOOR = new MockObjectSet<DOOR>(Settings);
+            DOOR_HANDLE = new MockObjectSet<DOOR_HANDLE>(Settings);
         }
 
-        public IObjectSet<DOOR> DOOR
-        {
-            get { return _door; }
-            set { _door = value; }
-        }
+        public TestDataModelSettings Settings { get; set; }
+    }
 
-        public IObjectSet<DOOR_HANDLE> DOOR_HANDLE
-        {
-            get { return _doorHandle; }
-            set { _doorHandle = value; }
-        }
-
-        private IObjectSet<CAR> _car = new MockObjectSet<CAR>();
-        private IObjectSet<DOOR> _door = new MockObjectSet<DOOR>();
-        private IObjectSet<DOOR_HANDLE> _doorHandle = new MockObjectSet<DOOR_HANDLE>();
+    class TestDataModelSettings
+    {
+        /// <summary>
+        /// Нужно ли устранять концептуальный разрыв между реляционной и объектной моделью
+        /// </summary>
+        public bool IsSmart { get; set; }
     }
 }

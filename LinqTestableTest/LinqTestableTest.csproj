@@ -48,19 +48,11 @@
   <ItemGroup>
     <Compile Include="TestDataModel.cs" />
     <Compile Include="MockObjectSet.cs" />
-    <Compile Include="Model.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Model.edmx</DependentUpon>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ToTestableTest.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <EntityDeploy Include="Model.edmx">
-      <Generator>EntityModelCodeGenerator</Generator>
-      <LastGenOutput>Model.Designer.cs</LastGenOutput>
-    </EntityDeploy>
+    <Compile Include="Tests\CouldNotMaterializeException.cs" />
+    <Compile Include="Tests\NullComparison.cs" />
+    <Compile Include="Tests\Select.cs" />
+    <Compile Include="Tests\TwoLeftJoins.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LinqTestable\LinqTestable.csproj">

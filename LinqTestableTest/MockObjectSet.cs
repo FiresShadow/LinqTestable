@@ -3,22 +3,19 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data.Objects;
 using System.Linq;
+using System.Linq.Expressions;
 using LinqTestable.Sources;
 
 namespace LinqTestableTest
 {
-    public partial class MockObjectSet<T> : IObjectSet<T> where T : class
+    class MockObjectSet<T> : IObjectSet<T> where T : class
     {
         private readonly IList<T> _collection;
 
-        public MockObjectSet(IList<T> collection)
-        {
-            _collection = collection;
-        }
-
-        public MockObjectSet()
+        public MockObjectSet(TestDataModelSettings settings)
         {
             _collection = new List<T>();
+            _settings = settings;
         }
 
         public void AddObject(T entity)
@@ -56,14 +53,27 @@ namespace LinqTestableTest
             get { return typeof(T); }
         }
 
-        public System.Linq.Expressions.Expression Expression
+        public Expression Expression
         {
-            get { return _collection.AsQueryable<T>().ToTestable().Expression; }
+            get
+            {
+                return 
+                    _settings.IsSmart ?
+                    _collection.AsQueryable().ToTestable().Expression : //используйте эту строчку для подключения LinqTestable к пользовательскому проекту
+                    _collection.AsQueryable().Expression;
+            }
         }
 
         public IQueryProvider Provider
         {
-            get { return _collection.AsQueryable<T>().ToTestable().Provider; }
+            get { 
+                    return
+                        _settings.IsSmart ?
+                        _collection.AsQueryable().ToTestable().Provider : //используйте эту строчку для подключения LinqTestable к пользовательскому проекту
+                        _collection.AsQueryable().Provider;  
+            }
         }
+
+        private TestDataModelSettings _settings;
     }
 }

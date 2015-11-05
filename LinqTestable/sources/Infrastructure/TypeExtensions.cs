@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-namespace LinqTestable.Sources
+namespace LinqTestable.Sources.Infrastructure
 {
     public static class TypeExtensions
     {
