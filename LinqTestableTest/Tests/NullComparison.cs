@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using LinqTestable.Sources;
 using LinqTestable.Sources.Infrastructure;
 using NUnit.Framework;
 
@@ -44,7 +43,6 @@ namespace LinqTestableTest.Tests
             Assert.Throws<AssertionException>(() => ExecuteNullComparison(false));
         }
 
-        [Ignore("Not realized yet")]
         [Test]
         public void SmartNullComparisonShouldSuccess()
         {

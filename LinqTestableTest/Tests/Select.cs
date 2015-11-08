@@ -15,7 +15,7 @@ namespace LinqTestableTest.Tests
             dataModel.CAR.AddObject(new CAR {CAR_ID = 2});
             dataModel.DOOR.AddObject(new DOOR {CAR_ID = 1, DOOR_ID = 1});
             dataModel.DOOR.AddObject(new DOOR {CAR_ID = 2, DOOR_ID = 2});
-            dataModel.DOOR_HANDLE.AddObject(new DOOR_HANDLE{DOOR_ID = 1, DOOR_HANDLE_ID = 1, COLOR = "BLACK"});
+            dataModel.DOOR_HANDLE.AddObject(new DOOR_HANDLE{DOOR_ID = 1, DOOR_HANDLE_ID = 1, COLOR = "RED"});
 
             var carsWithoutRedHandle =
                    (from car in dataModel.CAR
@@ -27,7 +27,7 @@ namespace LinqTestableTest.Tests
                     select car).ToList();
 
             Assert.AreEqual(1, carsWithoutRedHandle.Count);
-            Assert.AreEqual(1, carsWithoutRedHandle.First().CAR_ID);
+            Assert.AreEqual(2, carsWithoutRedHandle.First().CAR_ID);
         }
 
         [Test]
@@ -36,7 +36,7 @@ namespace LinqTestableTest.Tests
             Assert.Throws<NullReferenceException>(() => ExecuteSelect(false));
         }
 
-        [Ignore("Not realized yet")]
+//        [Ignore("Not realized yet")]
         [Test]
         public void SmartSelectShouldNotThrow()
         {

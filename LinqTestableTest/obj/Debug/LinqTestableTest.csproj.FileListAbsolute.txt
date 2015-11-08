@@ -6,3 +6,11 @@ C:\Dima\Repositories\LinqTestable\LinqTestable\LinqTestableTest\bin\Debug\LinqTe
 C:\Dima\Repositories\LinqTestable\LinqTestable\LinqTestableTest\obj\Debug\LinqTestableTest.csprojResolveAssemblyReference.cache
 C:\Dima\Repositories\LinqTestable\LinqTestable\LinqTestableTest\obj\Debug\LinqTestableTest.dll
 C:\Dima\Repositories\LinqTestable\LinqTestable\LinqTestableTest\obj\Debug\LinqTestableTest.pdb
+C:\Dima\Repositories\LinqTestable\LinqTestableTest\bin\Debug\LinqTestableTest.dll
+C:\Dima\Repositories\LinqTestable\LinqTestableTest\bin\Debug\LinqTestableTest.pdb
+C:\Dima\Repositories\LinqTestable\LinqTestableTest\bin\Debug\LinqTestable.dll
+C:\Dima\Repositories\LinqTestable\LinqTestableTest\bin\Debug\nunit.framework.dll
+C:\Dima\Repositories\LinqTestable\LinqTestableTest\bin\Debug\LinqTestable.pdb
+C:\Dima\Repositories\LinqTestable\LinqTestableTest\obj\Debug\LinqTestableTest.csprojResolveAssemblyReference.cache
+C:\Dima\Repositories\LinqTestable\LinqTestableTest\obj\Debug\LinqTestableTest.dll
+C:\Dima\Repositories\LinqTestable\LinqTestableTest\obj\Debug\LinqTestableTest.pdb

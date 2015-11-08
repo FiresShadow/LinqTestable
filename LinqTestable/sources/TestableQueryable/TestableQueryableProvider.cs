@@ -1,14 +1,14 @@
 ﻿using System.Linq;
 using System.Linq.Expressions;
 
-namespace LinqTestable.Sources
+namespace LinqTestable.Sources.TestableQueryable
 {
-    class TestableQueryProvider<T> : IQueryProvider
+    class TestableQueryableProvider<T> : IQueryProvider
     {
         readonly IQueryable<T> _query;
         readonly IQueryChanger _queryChanger;
 
-        internal TestableQueryProvider(IQueryable<T> query, IQueryChanger queryChanger)
+        internal TestableQueryableProvider(IQueryable<T> query, IQueryChanger queryChanger)
         {
             _query = query;
             _queryChanger = queryChanger;
@@ -16,7 +16,7 @@ namespace LinqTestable.Sources
 
         IQueryable<TElement> IQueryProvider.CreateQuery<TElement>(Expression expression)
         {
-            return new TestableQuery<TElement>(_query.Provider.CreateQuery<TElement>(_queryChanger.Change(expression)), _queryChanger);
+            return new TestableQueryable<TElement>(_query.Provider.CreateQuery<TElement>(_queryChanger.Change(expression)), _queryChanger);
         }
 
         IQueryable IQueryProvider.CreateQuery(Expression expression)

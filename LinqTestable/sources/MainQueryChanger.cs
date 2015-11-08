@@ -1,8 +1,5 @@
-﻿using System;
-using System.Linq.Expressions;
-using System.Reflection;
-using LinqTestable.Sources.ExpressionTreeChangers;
-using LinqTestable.Sources.Infrastructure;
+﻿using System.Linq.Expressions;
+using LinqTestable.Sources.ExpressionTreeVisitors;
 
 namespace LinqTestable.Sources
 {
@@ -11,16 +8,14 @@ namespace LinqTestable.Sources
         Expression Change(Expression expression);
     }
 
-    class QueryChanger : ExpressionVisitor, IQueryChanger
+    class MainQueryChanger : ExpressionVisitor, IQueryChanger
     {
         public Expression Change(Expression sourceExpression)
         {
-            var expression = new LeftJoinChanger().Visit(sourceExpression);
+            var expression = new NullableReplacer().Visit(sourceExpression);
             expression = new NullComparisonChanger().Visit(expression);
 
             return expression;
         }
     }
-
-    
 }

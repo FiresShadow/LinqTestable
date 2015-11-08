@@ -50,6 +50,7 @@
     <Compile Include="MockObjectSet.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tests\CouldNotMaterializeException.cs" />
+    <Compile Include="Tests\GroupBy.cs" />
     <Compile Include="Tests\NullComparison.cs" />
     <Compile Include="Tests\Select.cs" />
     <Compile Include="Tests\TwoLeftJoins.cs" />

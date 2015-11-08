@@ -5,6 +5,7 @@ using System.Data.Objects;
 using System.Linq;
 using System.Linq.Expressions;
 using LinqTestable.Sources;
+using LinqTestable.Sources.TestableQueryable;
 
 namespace LinqTestableTest
 {

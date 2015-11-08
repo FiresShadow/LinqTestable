@@ -48,14 +48,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Sources\ExpressionExtensions.cs" />
-    <Compile Include="Sources\ExpressionTreeChangers\LeftJoinChanger.cs" />
-    <Compile Include="Sources\ExpressionTreeChangers\NullComparisonChanger.cs" />
+    <Compile Include="Sources\Infrastructure\BoolExtensions.cs" />
+    <Compile Include="Sources\TestableQueryable\ExpressionExtensions.cs" />
+    <Compile Include="Sources\ExpressionTreeVisitors\DeepExpressionVisitor.cs" />
+    <Compile Include="Sources\ExpressionTreeVisitors\NullableReplacer.cs" />
+    <Compile Include="Sources\ExpressionTreeVisitors\NullComparisonChanger.cs" />
+    <Compile Include="Sources\ExpressionTreeVisitors\SelectOrSelectManySearcher.cs" />
     <Compile Include="Sources\Infrastructure\EnumerableExtensions.cs" />
     <Compile Include="Sources\Infrastructure\NameSelecter.cs" />
-    <Compile Include="Sources\QueryChanger.cs" />
-    <Compile Include="Sources\TestableQuery.cs" />
-    <Compile Include="Sources\TestableQueryProvider.cs" />
+    <Compile Include="Sources\MainQueryChanger.cs" />
+    <Compile Include="Sources\TestableQueryable\TestableQueryable.cs" />
+    <Compile Include="Sources\TestableQueryable\TestableQueryableProvider.cs" />
     <Compile Include="Sources\Infrastructure\TypeExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -1,15 +1,15 @@
 ﻿using System.Linq;
 
-namespace LinqTestable.Sources
+namespace LinqTestable.Sources.TestableQueryable
 {
     public static class ExpressionExtensions
     {
         public static IQueryable<T> ToTestable<T>(this IQueryable<T> query)
         {
-            if (query is TestableQuery<T>)
+            if (query is TestableQueryable<T>)
                 return query;
 
-            return new TestableQuery<T>(query, new QueryChanger());
+            return new TestableQueryable<T>(query, new MainQueryChanger());
         }
     }
 }

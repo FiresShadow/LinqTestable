@@ -4,17 +4,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace LinqTestable.Sources
+namespace LinqTestable.Sources.TestableQueryable
 {
-    class TestableQuery<T> : IOrderedQueryable<T>
+    class TestableQueryable<T> : IOrderedQueryable<T>
 	{
-		readonly TestableQueryProvider<T> _provider;
+		readonly TestableQueryableProvider<T> _provider;
         readonly IQueryable<T> _query;
 
-        internal TestableQuery (IQueryable<T> query, IQueryChanger queryChanger)
+        internal TestableQueryable (IQueryable<T> query, IQueryChanger queryChanger)
 		{
 			_query = query;
-			_provider = new TestableQueryProvider<T> (query, queryChanger);
+			_provider = new TestableQueryableProvider<T> (query, queryChanger);
 		}
 
         public Expression Expression { get { return _query.Expression; } }
