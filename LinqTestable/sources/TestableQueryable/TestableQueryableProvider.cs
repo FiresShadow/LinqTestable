@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Linq.Expressions;
 
-namespace LinqTestable.Sources.TestableQueryable
+namespace LinqTestable.Sources
 {
     class TestableQueryableProvider<T> : IQueryProvider
     {
@@ -16,22 +16,22 @@ namespace LinqTestable.Sources.TestableQueryable
 
         IQueryable<TElement> IQueryProvider.CreateQuery<TElement>(Expression expression)
         {
-            return new TestableQueryable<TElement>(_query.Provider.CreateQuery<TElement>(_queryChanger.Change(expression)), _queryChanger);
+            return new TestableQueryable<TElement>(_query.Provider.CreateQuery<TElement>(expression), _queryChanger);
         }
 
         IQueryable IQueryProvider.CreateQuery(Expression expression)
         {
-            return _query.Provider.CreateQuery(_queryChanger.Change(expression));
+            return _query.Provider.CreateQuery(expression);
         }
 
         TResult IQueryProvider.Execute<TResult>(Expression expression)
         {
-            return _query.Provider.Execute<TResult>(_queryChanger.Change(expression));
+            return _query.Provider.Execute<TResult>(expression);
         }
 
         object IQueryProvider.Execute(Expression expression)
         {
-            return _query.Provider.Execute(_queryChanger.Change(expression));
+            return _query.Provider.Execute(expression);
         }
     }
 }

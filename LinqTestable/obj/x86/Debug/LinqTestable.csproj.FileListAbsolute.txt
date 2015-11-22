@@ -5,6 +5,6 @@ C:\Dima\Repositories\LinqTestable\LinqTestable\LinqTestable\obj\x86\Debug\LinqTe
 C:\Dima\Repositories\LinqTestable\LinqTestable\LinqTestable\obj\x86\Debug\LinqTestable.pdb
 C:\Dima\Repositories\LinqTestable\LinqTestable\bin\Debug\LinqTestable.dll
 C:\Dima\Repositories\LinqTestable\LinqTestable\bin\Debug\LinqTestable.pdb
-C:\Dima\Repositories\LinqTestable\LinqTestable\obj\x86\Debug\LinqTestable.csprojResolveAssemblyReference.cache
 C:\Dima\Repositories\LinqTestable\LinqTestable\obj\x86\Debug\LinqTestable.dll
 C:\Dima\Repositories\LinqTestable\LinqTestable\obj\x86\Debug\LinqTestable.pdb
+C:\Dima\Repositories\LinqTestable\LinqTestable\obj\x86\Debug\LinqTestable.csprojResolveAssemblyReference.cache

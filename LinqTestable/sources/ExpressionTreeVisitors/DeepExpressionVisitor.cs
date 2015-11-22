@@ -319,7 +319,7 @@ namespace LinqTestable.Sources.ExpressionTreeChangers
             return bodyVisited != lambda.Body ? Expression.Lambda(lambda.Type, bodyVisited, lambda.Parameters) : lambda;
         }
 
-        protected virtual NewExpression VisitNew(NewExpression original)
+        protected virtual Expression VisitNew(NewExpression original)
         {
             IEnumerable<Expression> argumentsVisited = VisitExpressionList(original.Arguments);
             return argumentsVisited != original.Arguments
@@ -331,14 +331,14 @@ namespace LinqTestable.Sources.ExpressionTreeChangers
 
         protected virtual Expression VisitMemberInit(MemberInitExpression original)
         {
-            NewExpression newVisited = VisitNew(original.NewExpression);
+            NewExpression newVisited = (NewExpression) VisitNew(original.NewExpression);
             IEnumerable<MemberBinding> bindings = VisitBindingList(original.Bindings);
             return newVisited != original.NewExpression || bindings != original.Bindings ? Expression.MemberInit(newVisited, bindings) : original;
         }
 
         protected virtual Expression VisitListInit(ListInitExpression original)
         {
-            NewExpression newVisited = VisitNew(original.NewExpression);
+            NewExpression newVisited = (NewExpression) VisitNew(original.NewExpression);
             IEnumerable<ElementInit> initializersVisited = VisitElementInitializerList(original.Initializers);
             return newVisited != original.NewExpression || initializersVisited != original.Initializers ? Expression.ListInit(newVisited, initializersVisited) : original;
         }
