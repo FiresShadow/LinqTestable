@@ -21,7 +21,7 @@ namespace LinqTestableTest.Tests
                    (from car in dataModel.CAR
                     join door in dataModel.DOOR on car.CAR_ID equals door.CAR_ID 
                             into joinedDoor from door in joinedDoor.DefaultIfEmpty()
-                    join doorHandle in dataModel.DOOR_HANDLE on door.DOOR_ID equals doorHandle.DOOR_ID 
+                    join doorHandle in dataModel.DOOR_HANDLE on new {door.DOOR_ID} equals new {doorHandle.DOOR_ID} 
                             into joinedDoorHandle from doorHandle in joinedDoorHandle.DefaultIfEmpty()
                     where doorHandle.COLOR != "RED" || doorHandle == null
                     select car).ToList();
@@ -36,7 +36,6 @@ namespace LinqTestableTest.Tests
             Assert.Throws<NullReferenceException>(() => ExecuteSelect(false));
         }
 
-//        [Ignore("Not realized yet")]
         [Test]
         public void SmartSelectShouldNotThrow()
         {

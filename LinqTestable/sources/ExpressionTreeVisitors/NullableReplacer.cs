@@ -23,24 +23,28 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
 
         protected override Expression VisitMethodCall(MethodCallExpression sourceExpression)
         {
-            //TODO кастомный заменяемый тип
-
             var method = sourceExpression.Method;
             var methodName = method.Name;
 
             Expression objectVisited = Visit(sourceExpression.Object);
-            IEnumerable<Expression> argumentsVisited = VisitExpressionList(sourceExpression.Arguments);
+            var argumentsVisited = VisitExpressionList(sourceExpression.Arguments).ToList();
 
-            if (method.IsGenericMethod && method.GetGenericArguments().Any(x => x.IsNotNullableNotBooleanStruct() || _typesToReplace.Contains(x)))
+            if (method.IsGenericMethod && method.GetGenericArguments().Any(x => x.IsNotNullableNotBooleanStruct() || _typesToReplace.Contains(x))/*TODO remove 2d condition*/)
             {
-                var changedMethodGenericArguments = method.GetGenericArguments().Select(type => type.IsNotNullableNotBooleanStruct() ? type.GetNullable() : _typesToReplace.Contains(type) ? typeof(CompressedObject) : type).ToArray();
-                changedMethodGenericArguments = changedMethodGenericArguments.Select(type => _typesToReplace.Contains(type) ? typeof(CompressedObject) : type).ToArray();
+                var changedMethodGenericArguments = method.GetGenericArguments().Select(CorrectType).ToArray();
+
                 method = method.GetGenericMethodDefinition().MakeGenericMethod(changedMethodGenericArguments);
+
+                /*if (method.GetParameters().Any() && method.GetParameters().First().ParameterType.IsIQueryable() && argumentsVisited.Any() && argumentsVisited.First().Type.IsIEnumerable())
+                {
+                    var castMethod = typeof(Queryable).GetMethods().Single(m => m.Name == "AsQueryable" && m.IsGenericMethod).MakeGenericMethod(argumentsVisited.First().Type.GetIEnumerableParameter());
+                    argumentsVisited[0] = Expression.Call(null, castMethod, new []{argumentsVisited[0]});
+                }*/
             }
-            else if (method.DeclaringType == typeof(Enumerable) && method.ReturnType.IsNotNullableNotBooleanStruct() && method.IsGenericMethod)
+            else if ((method.DeclaringType == typeof(Enumerable) || method.DeclaringType == typeof(Queryable)) && method.ReturnType.IsNotNullableNotBooleanStruct() && method.IsGenericMethod)
             {
                 //в Enumerable помимо TResult Min<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector) есть много методов наподобие double Min<TSource>(this IEnumerable<TSource> source, Func<TSource, double> selector). Аналогично для Max и Average
-                var anotherMethod = typeof(Enumerable).GetMethods().FirstOrDefault(m => m.Name == methodName && m.ReturnType == method.ReturnType.GetNullable() &&
+                var anotherMethod = method.DeclaringType.GetMethods().FirstOrDefault(m => m.Name == methodName && m.ReturnType == method.ReturnType.GetNullable() &&
                     m.GetParameters().Count() == method.GetParameters().Count() && m.GetGenericArguments().Count() == method.GetGenericArguments().Count());
 
                 if (anotherMethod != null)
@@ -48,36 +52,72 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
                     method = anotherMethod.MakeGenericMethod(method.GetGenericArguments());
                 }
             }
-
-            /*if (methodName == "Select" || methodName == "SelectMany" || methodName == "Union")
+            else if (method.DeclaringType != null && method.DeclaringType.IsIEnumerable() && method.DeclaringType.GetIEnumerableParameter().IsNotNullableNotBooleanStruct())
             {
-                //для Селекта особая обработка, потому что в случае если ORM не может привести null к int в итоговом селекте, она бросает исключение; значит тест тоже должен падать
-                var finalGetDataSearcher = new SelectOrSelectManySearcher();
-                var selectFinded = argumentsVisited.Any(finalGetDataSearcher.IsFinded);
+                //TODO вынести эти большие куски в отдельные процедуры. Можно сгруппировать их в одном классе
+                //для расширений над всякими List<int>, которые переданы внутрь Expression как параметр. Например, Contains
+                var iEnumerableParameter = method.DeclaringType.GetIEnumerableParameter();
+                var castMethod = typeof (Enumerable).GetMethod("Cast").MakeGenericMethod(iEnumerableParameter.GetNullable());
+                objectVisited = Expression.Call(null, castMethod, new[]{objectVisited});
 
-                if ( ! selectFinded)
+                if (LinqTestableSettings.NullableSynonims.ContainsKey(method))
+                    method = LinqTestableSettings.NullableSynonims[method];
+                else 
                 {
-                    if (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(IQueryable<>) && method.ReturnType.GetGenericArguments().Single().IsNotNullableNotBooleanStruct())
-                    {
+                    method = typeof(Enumerable).GetMethods().SingleOrDefault(x =>
+                        {
+                            if (x.Name != method.Name)
+                                return false;
 
-                        var methodSelect = typeof(Queryable).GetMethods().Single(m => m.Name == "Select" && m.GetParameters()[1].ParameterType.GetGenericArguments()[0].GetGenericArguments().Count() == 2);
-                        var type = method.ReturnType.GetGenericArguments().Single();
-                        methodSelect = methodSelect.MakeGenericMethod(type, type.GetNullable());
-                        var parameter = Expression.Parameter(type);
-                        var castExpression = Expression.Lambda(Expression.Convert(parameter, type.GetNullable()), parameter);
+                            if (x.IsGenericMethod.Not())
+                                return false;
 
-                        var call = Expression.Call(objectVisited, method, argumentsVisited);
+                            int sourceCountParameters = method.GetParameters().Count();
+                            return x.GetParameters().Count() == sourceCountParameters + 1;
+                        });
 
-                        return Expression.Call(null, methodSelect, call, castExpression);
-                    }
+                    if (method == null)
+                        throw new Exception(string.Format("Failed correct method {0} of type {1}. Please specify corrected method in {2}", sourceExpression.Method.Name, sourceExpression.Method.DeclaringType != null ? sourceExpression.Method.DeclaringType.ToString() : "null", typeof(LinqTestableSettings).Name));
 
-                    return sourceExpression;
+                    method = method.MakeGenericMethod(iEnumerableParameter.GetNullable());
+
+                    objectVisited = Expression.Convert(objectVisited, typeof(IEnumerable<>).MakeGenericType(iEnumerableParameter.GetNullable()));
+                    argumentsVisited = new[] {objectVisited}.Union(argumentsVisited).ToList();
+                    objectVisited = null;
                 }
-                //TODO
-            }*/
+            }
 
+            if (methodName == "Sum" && (method.DeclaringType == typeof (Enumerable) || method.DeclaringType == typeof (Queryable)))
+            {
+                var sourceCollection = argumentsVisited.First();
 
-            if (method != sourceExpression.Method || objectVisited != sourceExpression.Object || argumentsVisited != sourceExpression.Arguments)
+                var anyMethod = method.DeclaringType.GetMethods().Single(m => m.Name == "Any" && m.GetParameters().Count() == 1)
+                    .MakeGenericMethod(sourceCollection.Type.GetGenericArguments().Single());
+
+                var callAny = Expression.Call(null, anyMethod, new []{sourceCollection});
+                return Expression.Condition(callAny, Expression.Call(objectVisited, method, argumentsVisited), Expression.Constant(null, method.ReturnType));
+            }
+
+            if (method.ReturnType.IsNotNullableNotBooleanStruct() && method.DeclaringType != null)
+            {
+                var correctedReturnType = method.ReturnType.GetNullable();
+
+                var correctedMethod = method.DeclaringType.GetMethods().FirstOrDefault(m =>
+                    (m.Name == method.Name)
+                    && (m.IsGenericMethod == method.IsGenericMethod) 
+                    && (method.IsGenericMethod.Not() || m.GetGenericArguments().Count() == method.GetGenericArguments().Count())
+                    && (m.ReturnType == correctedReturnType));
+
+                if (correctedMethod != null)
+                {
+                    if (correctedMethod.IsGenericMethod)
+                        correctedMethod = correctedMethod.MakeGenericMethod(method.GetGenericArguments());
+
+                    method = correctedMethod;
+                }
+            }
+
+            if (method != sourceExpression.Method || objectVisited != sourceExpression.Object || argumentsVisited.AsReadOnly() != sourceExpression.Arguments)
             {
                 return Expression.Call(objectVisited, method, argumentsVisited);
             }
@@ -85,23 +125,21 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
             return sourceExpression;
         }
 
-        private NewExpression CreateNewCompressedObject(Type type)
+        private NewExpression CreateNewCompressedObject()
         {
-            var constructorCompressedObject = typeof(CompressedObject).GetConstructor(new[] { typeof(Type) });
-//            var memberInfo = typeof(Type).GetMembers().Where(x => x.DeclaringType == typeof(Type)).First();
-            var newExpression = Expression.New(constructorCompressedObject, Expression.Constant(type));
-            return newExpression;
+            return Expression.New(typeof(CompressedObject));
         }
 
         protected override Expression VisitNew(NewExpression sourceExpression)
         {
-            //Создаёт анонимный тип с данными передаваемыми через конструкор
-
             if (_typesToReplace.Contains(sourceExpression.Type))
             {
-                var newExpression = CreateNewCompressedObject(sourceExpression.Type);
+                var newExpression = CreateNewCompressedObject();
+
+                if (sourceExpression.Arguments.Count == 0)
+                    return newExpression;
+
                 IEnumerable<Expression> argumentsVisited = VisitExpressionList(sourceExpression.Arguments);
-                ReadOnlyCollection<Expression> argumentsVisited2;
                 var addMethod = typeof (CompressedObject).GetMethods().Single(x => x.Name == "Add");
                 
                 var elementInits = new List<ElementInit>();
@@ -109,21 +147,17 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
                 foreach (var argument in argumentsVisited)
                 {
                     var arguments = new List<Expression>();
-                    string sourceArgumentName=null;
-
-                    var sourceArgument = sourceExpression.Arguments[numberArgument];
-                    if (sourceArgument is ParameterExpression)
-                        sourceArgumentName = ((ParameterExpression)sourceArgument).Name;
-                    if (sourceArgument is MemberExpression)
-                        sourceArgumentName = ((MemberExpression) sourceArgument).Member.Name;
-                    if (sourceArgumentName == null)
-                        throw new Exception("sourceArgumentName");
+                    
+                    string sourceArgumentName = sourceExpression.Members[numberArgument].Name;
 
                     arguments.Add(Expression.Constant(sourceArgumentName));
                     arguments.Add(Expression.Convert(argument, typeof(object)));
-                    elementInits.Add(Expression.ElementInit(addMethod, arguments));
+                    elementInits.Add(Expression.ElementInit(addMethod, arguments)); //TODO подумать о выделении в отдельный метод добавления элементов в упакованный объект
                     numberArgument++;
                 }
+
+                if (elementInits.Any().Not())
+                    return newExpression;
 
                 var listInit = Expression.ListInit(newExpression, elementInits);
                 return listInit;
@@ -134,7 +168,7 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
 
         protected override Expression VisitMemberInit(MemberInitExpression sourceExpression)
         {
-            var newExpression = CreateNewCompressedObject(sourceExpression.Type);
+            var newExpression = CreateNewCompressedObject();
 
             var addMethod = typeof(CompressedObject).GetMethods().Single(x => x.Name == "Add");
             var elementInits = new List<ElementInit>();
@@ -147,32 +181,52 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
                 elementInits.Add(Expression.ElementInit(addMethod, arguments));
             }
 
+            if (elementInits.Any().Not())
+                return newExpression;
+
             var listInit = Expression.ListInit(newExpression, elementInits);
             return listInit;
         }
 
-        protected override Expression VisitListInit(ListInitExpression sourceExpression)
+        /*protected override Expression VisitListInit(ListInitExpression sourceExpression)
         {
             return base.VisitListInit(sourceExpression);
-        }
-
+        }*/
+        
         protected override Expression VisitMemberAccess(MemberExpression sourceMemberExpression)
         {
+            //Замечены случаи, когда константный список интов зачем то закулисами заворачивается в служебный класс. Поэтому not null поля нужно подменять на null также и на уровне доступа к данным, т.е. в этом методе
+
             Expression expressionVisited = Visit(sourceMemberExpression.Expression);
 
             Type memberType;
             Expression memberAccess;
             if (expressionVisited.Type == typeof (CompressedObject))
             {
-                var methodInfo = typeof(CompressedObject).GetMethod("get_Item");
+                var methodInfo = typeof(CompressedObject).GetMethod("GetItem");
                 memberAccess = Expression.Call(expressionVisited, methodInfo, new[] { (Expression)Expression.Constant(sourceMemberExpression.Member.Name) });
             }
             else
             {
-                memberAccess = Expression.MakeMemberAccess(expressionVisited, sourceMemberExpression.Member);
+                var memberInfo = expressionVisited.Type.GetMember(sourceMemberExpression.Member.Name).Single();
+                memberAccess = Expression.MakeMemberAccess(expressionVisited, memberInfo);
             }
 
             memberType = _typesToReplace.Contains(sourceMemberExpression.Type) ? typeof(CompressedObject) : sourceMemberExpression.Type.IsNotNullableNotBooleanStruct() ? sourceMemberExpression.Type.GetNullable() : sourceMemberExpression.Type;
+
+            if (memberType.IsIEnumerable() && memberType.GetIEnumerableParameter().IsNotNullableNotBooleanStruct())
+            {
+                var iEnumerableParameter = memberType.GetIEnumerableParameter();
+                memberType = typeof(IEnumerable<>).MakeGenericType(iEnumerableParameter.GetNullable());
+
+                var castMethod = typeof(Enumerable).GetMethod("Cast").MakeGenericMethod(iEnumerableParameter.GetNullable());
+                memberAccess = Expression.Call(null, castMethod, new[] { Expression.Convert(memberAccess, typeof(IEnumerable<>).MakeGenericType(iEnumerableParameter)) });
+            }
+            else if (memberType.IsIEnumerable() && _typesToReplace.Contains(memberType.GetIEnumerableParameter()))
+            {
+//                memberAccess = ChangeConstantExpression(sourceMemberExpression);
+                memberType = memberType.GetGenericTypeDefinition().MakeGenericType(typeof(CompressedObject));
+            }
 
             var variable = Expression.Variable(memberType);
 
@@ -190,12 +244,24 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
         protected override Expression VisitLambda(LambdaExpression lambda)
         {
             var correctedParameters = new List<ParameterExpression>();
-            int numberParameter = 0;
             foreach (var parameter in lambda.Parameters)
             {
+                /*var correctedType = CorrectType(parameter.Type);
+                if (correctedType != parameter.Type)
+                {
+                    var newParameter = Expression.Parameter(correctedType, parameter.Name);
+                    _parametersToReplace.Add(parameter, newParameter);
+                    correctedParameters.Add(newParameter);
+                }*/
                 if (_typesToReplace.Contains(parameter.Type))
                 {
                     var newParameter = Expression.Parameter(typeof (CompressedObject), parameter.Name);
+                    _parametersToReplace.Add(parameter, newParameter);
+                    correctedParameters.Add(newParameter);
+                }
+                else if (parameter.Type.IsNotNullableNotBooleanStruct())
+                {
+                    var newParameter = Expression.Parameter(parameter.Type.GetNullable(), parameter.Name);
                     _parametersToReplace.Add(parameter, newParameter);
                     correctedParameters.Add(newParameter);
                 }
@@ -215,21 +281,17 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
             
 
             var genericArguments = lambda.Type.GetGenericArguments();
-            var returnType = genericArguments.Last();
 
             var resultLambdaType = lambda.Type;
 
             var correctedGenericArguments = new List<Type>();
             foreach (var genericArgument in genericArguments)
             {
-                correctedGenericArguments.Add(_typesToReplace.Contains(genericArgument)
-                                                  ? typeof (CompressedObject)
-                                                  : genericArgument);
-            }
-
-            if (returnType.IsNotNullableNotBooleanStruct())
-            {
-                correctedGenericArguments = correctedGenericArguments.Take(correctedGenericArguments.Count() - 1).Union(new[] { returnType.GetNullable() }).ToList();
+                correctedGenericArguments.Add(
+                    /*CorrectType(genericArgument)*/
+                    _typesToReplace.Contains(genericArgument) ? typeof (CompressedObject) :
+                    genericArgument.IsNotNullableNotBooleanStruct() ? genericArgument.GetNullable() :
+                    genericArgument);
             }
 
             resultLambdaType = lambda.Type.GetGenericTypeDefinition().MakeGenericType(correctedGenericArguments.ToArray());
@@ -250,7 +312,96 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
             if (_typesToReplace.Contains(parameterExpression.Type))
                 return Expression.Parameter(typeof (CompressedObject));
 
+            if (parameterExpression.Type.IsNotNullableNotBooleanStruct())
+                return Expression.Convert(parameterExpression, parameterExpression.Type.GetNullable());
+
+            if (parameterExpression.Type.IsIEnumerable() && _typesToReplace.Contains(parameterExpression.Type.GetIEnumerableParameter())) //IGrouping<,> IEnumerable<>
+            {
+                var genericArguments = parameterExpression.Type.GetGenericArguments();
+                var correctedGenericArguments = genericArguments.Select(arg => _typesToReplace.Contains(arg) ? typeof (CompressedObject) : arg);
+                return Expression.Parameter(parameterExpression.Type.GetGenericTypeDefinition().MakeGenericType(correctedGenericArguments.ToArray()));
+            }
+
             return parameterExpression;
+        }
+
+        protected override Expression VisitConstant(ConstantExpression constantExpression)
+        {
+            return ChangeConstantExpression(constantExpression);
+        }
+
+        private Expression ChangeConstantExpression(Expression sourceObject /*тут добавить параметр связанный с зацикливанием и переименовать метод*/)
+        {
+            //TODO Не обработано зацикливание, напр когда у типа есть ссылка на коллекцию элементов того же типа
+            //TODO Увеличить покрытие этого метода тестами
+
+            Type elementType = sourceObject.Type;
+
+            if (_typesToReplace.Contains(elementType))
+            {
+                var newExpression = CreateNewCompressedObject();
+
+                var addMethod = typeof(CompressedObject).GetMethods().Single(x => x.Name == "Add");
+                var elementInits = new List<ElementInit>();
+
+                foreach (var memberInfo in elementType.GetMembers().Where(x => x.MemberType == MemberTypes.Field || x.MemberType == MemberTypes.Property))
+                {
+                    var memberAccess = Expression.MakeMemberAccess(sourceObject, memberInfo);
+
+                    var arguments = new List<Expression>();
+                    arguments.Add(Expression.Constant(memberInfo.Name));
+
+                    var visitedMember = ChangeConstantExpression(memberAccess);
+
+                    arguments.Add(Expression.Convert(visitedMember, typeof(object)));
+                    elementInits.Add(Expression.ElementInit(addMethod, arguments));
+                }
+
+                if (elementInits.Any().Not())
+                    return newExpression;
+
+                return Expression.ListInit(newExpression, elementInits);
+            }
+            
+            if (elementType.IsIEnumerable() && _typesToReplace.Contains(elementType.GetIEnumerableParameter()))
+            {
+                var parameterOfElement = Expression.Parameter(elementType.GetIEnumerableParameter());
+                var body = ChangeConstantExpression(parameterOfElement);
+                var selector = Expression.Lambda(body, parameterOfElement);
+
+                var methodSelect = typeof(Enumerable).GetMethods().Single(m => m.Name == "Select" && m.GetParameters()[1].ParameterType.GetGenericArguments().Count() == 2)
+                    .MakeGenericMethod(new []{elementType.GetIEnumerableParameter(), typeof(CompressedObject)});
+
+                return Expression.Call(null, methodSelect, sourceObject, selector);
+            }
+
+            if (elementType.IsNotNullableNotBooleanStruct())
+                return Expression.Convert(sourceObject, elementType.GetNullable());
+
+            if (elementType.IsIEnumerable() && elementType.GetIEnumerableParameter().IsNotNullableNotBooleanStruct())
+            {
+                var castMethod = typeof(Enumerable).GetMethod("Cast").MakeGenericMethod(sourceObject.Type.GetIEnumerableParameter().GetNullable());
+                return Expression.Call(null, castMethod, new[] { sourceObject });
+            }
+            
+            return sourceObject;
+        }
+
+        private Type CorrectType(Type type)
+        {
+            if (type.IsNotNullableNotBooleanStruct())
+                return type.GetNullable();
+            
+            if (_typesToReplace.Contains(type))
+                return typeof (CompressedObject);
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() != typeof(Nullable<>))
+            {
+                var correctedGenericArguments = type.GetGenericArguments().Select(CorrectType).ToArray();
+                return type.GetGenericTypeDefinition().MakeGenericType(correctedGenericArguments);
+            }
+
+            return type;
         }
     }
 }

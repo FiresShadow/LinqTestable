@@ -1,10 +1,13 @@
-﻿using System.Data.Objects;
+﻿using System.Collections;
+using System.Collections.Generic;
+using System.Data.Objects;
 
 namespace LinqTestableTest
 {
     class CAR
     {
-        public int CAR_ID { get; set; } 
+        public int CAR_ID { get; set; }
+        public EntityCollection<DOOR> Doors { get; set; }
     }
 
     class DOOR
@@ -52,5 +55,25 @@ namespace LinqTestableTest
         /// Нужно ли устранять концептуальный разрыв между реляционной и объектной моделью
         /// </summary>
         public bool IsSmart { get; set; }
+    }
+
+    class EntityCollection<TEntity> : IEnumerable<TEntity> where TEntity : class
+    {
+        private readonly IEnumerable<TEntity> _collection;
+
+        public EntityCollection(IEnumerable<TEntity> collection)
+        {
+            _collection = collection;
+        }
+
+        public IEnumerator<TEntity> GetEnumerator()
+        {
+            return _collection.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return _collection.GetEnumerator();
+        }
     }
 }

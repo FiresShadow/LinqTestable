@@ -16,13 +16,11 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
             return base.VisitNew(newExpression);
         }
 
-//        protected override 
-
         public List<Type> Find(Expression expression)
         {
             _types = new List<Type>();
             Visit(expression);
-            return _types.Distinct().ToList();
+            return _types.Distinct().Except(new[]{typeof(CompressedObject)}).ToList();
         }
 
         private List<Type> _types;

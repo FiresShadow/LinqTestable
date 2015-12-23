@@ -49,8 +49,10 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Sources\ExpressionTreeVisitors\InstantiatedTypeSearcher.cs" />
+    <Compile Include="Sources\ExpressionTreeVisitors\NewNestingCounter.cs" />
     <Compile Include="Sources\Infrastructure\BoolExtensions.cs" />
     <Compile Include="Sources\Infrastructure\CompressedObject.cs" />
+    <Compile Include="Sources\LinqTestableSettings.cs" />
     <Compile Include="Sources\TestableQueryable\ExpressionExtensions.cs" />
     <Compile Include="Sources\ExpressionTreeVisitors\DeepExpressionVisitor.cs" />
     <Compile Include="Sources\ExpressionTreeVisitors\NullableReplacer.cs" />

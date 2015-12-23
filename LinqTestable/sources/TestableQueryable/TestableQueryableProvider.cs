@@ -5,7 +5,7 @@ namespace LinqTestable.Sources
 {
     class TestableQueryableProvider<T> : IQueryProvider
     {
-        readonly IQueryable<T> _query;
+        IQueryable<T> _query;
         readonly IQueryChanger _queryChanger;
 
         internal TestableQueryableProvider(IQueryable<T> query, IQueryChanger queryChanger)
@@ -26,12 +26,12 @@ namespace LinqTestable.Sources
 
         TResult IQueryProvider.Execute<TResult>(Expression expression)
         {
-            return _query.Provider.Execute<TResult>(expression);
+            return _query.Provider.Execute<TResult>(_queryChanger.Change(expression));
         }
 
         object IQueryProvider.Execute(Expression expression)
         {
-            return _query.Provider.Execute(expression);
+            return _query.Provider.Execute(_queryChanger.Change(expression));
         }
     }
 }

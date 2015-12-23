@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace LinqTestable.Sources.ExpressionTreeChangers
@@ -346,10 +347,13 @@ namespace LinqTestable.Sources.ExpressionTreeChangers
         protected virtual Expression VisitNewArray(NewArrayExpression original)
         {
             IEnumerable<Expression> expressionVisited = VisitExpressionList(original.Expressions);
+
+            var elementType = expressionVisited.Any() ? expressionVisited.First().Type : original.Type.GetElementType();
+
             return expressionVisited != original.Expressions
                        ? (original.NodeType == ExpressionType.NewArrayInit
-                              ? Expression.NewArrayInit(original.Type.GetElementType(), expressionVisited)
-                              : Expression.NewArrayBounds(original.Type.GetElementType(), expressionVisited))
+                              ? Expression.NewArrayInit(elementType, expressionVisited)
+                              : Expression.NewArrayBounds(elementType, expressionVisited))
                        : original;
         }
 

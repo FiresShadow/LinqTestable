@@ -4,19 +4,8 @@ using System.Linq;
 
 namespace LinqTestable.Sources.Infrastructure
 {
-    //TODO clear constructor
     class CompressedObject : Dictionary<string, object>
     {
-        /// <summary>
-        /// Тип исходного упакованного объекта
-        /// </summary>
-        private Type _sourceType;
-
-        public CompressedObject(Type sourceType)
-        {
-            _sourceType = sourceType;
-        }
-
         protected bool Equals(CompressedObject other)
         {
             return this.All(keyValue => other[keyValue.Key].Equals(keyValue.Value));
@@ -60,6 +49,11 @@ namespace LinqTestable.Sources.Infrastructure
         public object GetValueByNumber(int number)
         {
             return this.ToList()[number].Value;
+        }
+
+        public object GetItem(string name)
+        {
+            return this[name];
         }
     }
 }
