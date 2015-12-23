@@ -29,7 +29,7 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
             Expression objectVisited = Visit(sourceExpression.Object);
             var argumentsVisited = VisitExpressionList(sourceExpression.Arguments).ToList();
 
-            if (method.IsGenericMethod && method.GetGenericArguments().Any(x => x.IsNotNullableNotBooleanStruct() || _typesToReplace.Contains(x))/*TODO remove 2d condition*/)
+            if (method.IsGenericMethod)
             {
                 var changedMethodGenericArguments = method.GetGenericArguments().Select(CorrectType).ToArray();
 
@@ -87,17 +87,6 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
                 }
             }
 
-            if (methodName == "Sum" && (method.DeclaringType == typeof (Enumerable) || method.DeclaringType == typeof (Queryable)))
-            {
-                var sourceCollection = argumentsVisited.First();
-
-                var anyMethod = method.DeclaringType.GetMethods().Single(m => m.Name == "Any" && m.GetParameters().Count() == 1)
-                    .MakeGenericMethod(sourceCollection.Type.GetGenericArguments().Single());
-
-                var callAny = Expression.Call(null, anyMethod, new []{sourceCollection});
-                return Expression.Condition(callAny, Expression.Call(objectVisited, method, argumentsVisited), Expression.Constant(null, method.ReturnType));
-            }
-
             if (method.ReturnType.IsNotNullableNotBooleanStruct() && method.DeclaringType != null)
             {
                 var correctedReturnType = method.ReturnType.GetNullable();
@@ -115,6 +104,17 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
 
                     method = correctedMethod;
                 }
+            }
+
+            if (methodName == "Sum" && (method.DeclaringType == typeof(Enumerable) || method.DeclaringType == typeof(Queryable))) //TODO этому if не место в данном классе, у него другая ответственность
+            {
+                var sourceCollection = argumentsVisited.First();
+
+                var anyMethod = method.DeclaringType.GetMethods().Single(m => m.Name == "Any" && m.GetParameters().Count() == 1)
+                    .MakeGenericMethod(sourceCollection.Type.GetGenericArguments().Single());
+
+                var callAny = Expression.Call(null, anyMethod, new[] { sourceCollection });
+                return Expression.Condition(callAny, Expression.Call(objectVisited, method, argumentsVisited), Expression.Constant(null, method.ReturnType));
             }
 
             if (method != sourceExpression.Method || objectVisited != sourceExpression.Object || argumentsVisited.AsReadOnly() != sourceExpression.Arguments)
@@ -210,9 +210,10 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
             {
                 var memberInfo = expressionVisited.Type.GetMember(sourceMemberExpression.Member.Name).Single();
                 memberAccess = Expression.MakeMemberAccess(expressionVisited, memberInfo);
+                memberAccess = CorrectExpression(memberAccess);
             }
 
-            memberType = _typesToReplace.Contains(sourceMemberExpression.Type) ? typeof(CompressedObject) : sourceMemberExpression.Type.IsNotNullableNotBooleanStruct() ? sourceMemberExpression.Type.GetNullable() : sourceMemberExpression.Type;
+            memberType = CorrectType(sourceMemberExpression.Type);
 
             if (memberType.IsIEnumerable() && memberType.GetIEnumerableParameter().IsNotNullableNotBooleanStruct())
             {
@@ -246,22 +247,10 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
             var correctedParameters = new List<ParameterExpression>();
             foreach (var parameter in lambda.Parameters)
             {
-                /*var correctedType = CorrectType(parameter.Type);
+                var correctedType = CorrectType(parameter.Type);
                 if (correctedType != parameter.Type)
                 {
                     var newParameter = Expression.Parameter(correctedType, parameter.Name);
-                    _parametersToReplace.Add(parameter, newParameter);
-                    correctedParameters.Add(newParameter);
-                }*/
-                if (_typesToReplace.Contains(parameter.Type))
-                {
-                    var newParameter = Expression.Parameter(typeof (CompressedObject), parameter.Name);
-                    _parametersToReplace.Add(parameter, newParameter);
-                    correctedParameters.Add(newParameter);
-                }
-                else if (parameter.Type.IsNotNullableNotBooleanStruct())
-                {
-                    var newParameter = Expression.Parameter(parameter.Type.GetNullable(), parameter.Name);
                     _parametersToReplace.Add(parameter, newParameter);
                     correctedParameters.Add(newParameter);
                 }
@@ -284,17 +273,8 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
 
             var resultLambdaType = lambda.Type;
 
-            var correctedGenericArguments = new List<Type>();
-            foreach (var genericArgument in genericArguments)
-            {
-                correctedGenericArguments.Add(
-                    /*CorrectType(genericArgument)*/
-                    _typesToReplace.Contains(genericArgument) ? typeof (CompressedObject) :
-                    genericArgument.IsNotNullableNotBooleanStruct() ? genericArgument.GetNullable() :
-                    genericArgument);
-            }
-
-            resultLambdaType = lambda.Type.GetGenericTypeDefinition().MakeGenericType(correctedGenericArguments.ToArray());
+            var correctedGenericArguments = genericArguments.Select(CorrectType).ToArray();
+            resultLambdaType = lambda.Type.GetGenericTypeDefinition().MakeGenericType(correctedGenericArguments);
 
             if (resultLambdaType != lambda.Type || bodyVisited != lambda.Body)
             {
@@ -395,13 +375,48 @@ namespace LinqTestable.Sources.ExpressionTreeVisitors
             if (_typesToReplace.Contains(type))
                 return typeof (CompressedObject);
 
-            if (type.IsGenericType && type.GetGenericTypeDefinition() != typeof(Nullable<>))
+            if (type.IsIEnumerable() && type.IsGenericType && type.GetGenericTypeDefinition() != typeof(Nullable<>))
             {
                 var correctedGenericArguments = type.GetGenericArguments().Select(CorrectType).ToArray();
                 return type.GetGenericTypeDefinition().MakeGenericType(correctedGenericArguments);
             }
 
             return type;
+        }
+
+        private Expression CorrectExpression(Expression sourceExpression)
+        {
+            //TODO Сделать универсальный метод кастования не-налловых типов и контейнеров к налловым, и повсюду его использовать.
+
+            if (sourceExpression.Type.IsIEnumerable() && sourceExpression.Type.GetIEnumerableParameter().IsNotNullableNotBooleanStruct())
+            {
+                var destinationElementType = sourceExpression.Type.GetIEnumerableParameter().GetNullable();
+                var castMethod = typeof(Enumerable).GetMethod("Cast").MakeGenericMethod(destinationElementType);
+                var castExpression = Expression.Call(null, castMethod, new[] { sourceExpression });
+                
+                if (sourceExpression.Type.IsGenericType )
+                {
+                    if (sourceExpression.Type.GetGenericTypeDefinition() == typeof (List<>))
+                    {
+                        var toListMethod = typeof (Enumerable).GetMethod("ToList").MakeGenericMethod(destinationElementType);
+                        return Expression.Call(null, toListMethod, castExpression);
+                    }
+
+                    if (sourceExpression.Type.IsArray)
+                    {
+                        var toArrayMethod = typeof(Enumerable).GetMethod("ToArray").MakeGenericMethod(destinationElementType);
+                        return Expression.Call(null, toArrayMethod, castExpression);
+                    }
+
+                    if (sourceExpression.Type.GetGenericTypeDefinition() == typeof(IQueryable<>))
+                    {
+                        var toQueryableMethod = typeof(Queryable).GetMethod("AsQueryable").MakeGenericMethod(destinationElementType);
+                        return Expression.Call(null, toQueryableMethod, castExpression);
+                    }
+                }
+            }
+
+            return sourceExpression;
         }
     }
 }

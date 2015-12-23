@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using NUnit.Framework;
 
 namespace LinqTestableTest.Tests
@@ -197,10 +199,67 @@ namespace LinqTestableTest.Tests
             Assert.AreEqual(1, finalDoors.Count);
         }
 
+        [Test]
+        public void Test11()
+        {
+            var dataModel = new TestDataModel { Settings = { IsSmart = true } };
+
+            dataModel.CAR.AddObject(new CAR { CAR_ID = 1 });
+            dataModel.CAR.AddObject(new CAR { CAR_ID = 2 });
+            dataModel.DOOR.AddObject(new DOOR { CAR_ID = 2, DOOR_ID = 1 });
+            dataModel.DOOR.AddObject(new DOOR { CAR_ID = 1, DOOR_ID = 10 });
+            dataModel.DOOR.AddObject(new DOOR { CAR_ID = 2, DOOR_ID = 20 });
+            dataModel.DOOR.AddObject(new DOOR { CAR_ID = 1, DOOR_ID = 12 });
+
+            var orderedIds =
+                (from car in dataModel.CAR
+                join door in dataModel.DOOR on car.CAR_ID equals door.CAR_ID
+                select new {car.CAR_ID, door.DOOR_ID})
+                    .OrderBy(x => x.CAR_ID).ThenBy(x => x.DOOR_ID).ToList();
+
+            Assert.AreEqual(4, orderedIds.Count());
+            Assert.AreEqual(1, orderedIds[0].CAR_ID);
+            Assert.AreEqual(1, orderedIds[1].CAR_ID);
+            Assert.AreEqual(2, orderedIds[2].CAR_ID);
+            Assert.AreEqual(2, orderedIds[3].CAR_ID);
+            Assert.AreEqual(10, orderedIds[0].DOOR_ID);
+            Assert.AreEqual(12, orderedIds[1].DOOR_ID);
+            Assert.AreEqual(1, orderedIds[2].DOOR_ID);
+            Assert.AreEqual(20, orderedIds[3].DOOR_ID);
+        }
+
+        [Test]
+        public void Test12()
+        {
+            throw new Exception("Этот тест входит в бесконечный цикл и роняет систему прогонки тестов");
+
+            var dataModel = new TestDataModel { Settings = { IsSmart = true } };
+            
+            dataModel.CAR.AddObject(new CAR { CAR_ID = 1 });
+            dataModel.DOOR.AddObject(new DOOR { CAR_ID = 1, DOOR_ID = 10 });
+
+            var cars =
+                (from car in dataModel.CAR
+                 select new Container { Id2 = (int?)car.CAR_ID });
+
+            cars = cars.Union(new[] { new Container { Id2 = null } });
+
+            var doors =
+                from door in dataModel.DOOR
+                select new { DoorId = door.DOOR_ID, Cars = cars.Where(car => car.Id2 == door.CAR_ID) };
+
+            var finalDoors =
+                (from door in dataModel.DOOR
+                 where doors.Any(d => d.Cars.Any(c => c.Id2 == door.CAR_ID))
+                 select door).ToList();
+
+            Assert.AreEqual(1, finalDoors.Count);
+        }
+
         public class Container
         {
             public int Id { get; set; }
-            public int Id2 { get; set; }
+            public int? Id2 { get; set; }
             public Container SubContainer { get; set; }
         }
     }

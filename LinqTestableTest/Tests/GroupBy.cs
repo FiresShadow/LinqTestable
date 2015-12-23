@@ -22,11 +22,9 @@ namespace LinqTestableTest.Tests
                  group new {doorHandle2, door} by doorHandle2.COLOR into groupedDoorHandle
                  select new {Id = groupedDoorHandle.Min(x => x.door.DOOR_ID), Color = groupedDoorHandle.Key }).ToList();
 
-//            IGrouping<string, int> a = null;
-//            a.AsEnumerable()
-
-            Assert.AreEqual(1, minIdDoors.Single().Id);
-            Assert.AreEqual("YELLOW", minIdDoors.Single().Color);
+            Assert.AreEqual(1, minIdDoors.First().Id);
+            Assert.AreEqual("YELLOW", minIdDoors.First().Color);
+            Assert.AreEqual(null, minIdDoors[1].Color);
         }
 
         [Test]
