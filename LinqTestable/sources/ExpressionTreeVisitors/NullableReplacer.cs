@@ -10,7 +10,7 @@ using LinqTestable.Sources.Infrastructure;
 namespace LinqTestable.Sources.ExpressionTreeVisitors
 {
     /// <summary>
-    /// Меняет все структуры кроме bool на Nullable
+    /// Меняет внутри дерева выражений некоторые типы на Nullable
     /// </summary>
     public class NullableReplacer : DeepExpressionVisitor
     {

@@ -14,6 +14,9 @@ namespace LinqTestable.Sources
         Expression Change(Expression expression);
     }
 
+    /// <summary>
+    /// Изменяет дерево выражений для устранения концептуального разрыва. Обращается к подчинённым изменятелям дерева выражений 
+    /// </summary>
     class MainQueryChanger : ExpressionVisitor, IQueryChanger
     {
         public Expression Change(Expression sourceExpression)

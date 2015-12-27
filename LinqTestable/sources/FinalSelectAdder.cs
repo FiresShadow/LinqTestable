@@ -7,6 +7,9 @@ using LinqTestable.Sources.Infrastructure;
 
 namespace LinqTestable.Sources
 {
+    /// <summary>
+    /// Гарантирует возврат именно того типа, который возвращался изначально, до изменения дерева выражений
+    /// </summary>
     class FinalSelectAdder
     {
         /// <summary>

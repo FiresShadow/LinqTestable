@@ -7,6 +7,10 @@ using LinqTestable.Sources.Infrastructure;
 
 namespace LinqTestable.Sources.ExpressionTreeVisitors
 {
+    /// <summary>
+    /// Ищет классы, которые создаются через new. В них могут передаваться данные, и возможен случай, что в не Nullable поле потребуется поместить null.
+    /// Поэтому все объекты таких классов будем подменять на упакованные (сериализованные) объекты CompressedObject и делать все поля Nullable
+    /// </summary>
     public class InstantiatedTypeSearcher : DeepExpressionVisitor
     {
         protected override Expression VisitNew(NewExpression newExpression)
